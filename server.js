@@ -22,12 +22,12 @@ app.get("/*", cacheMiddleware());
 app.options("/*", cacheMiddleware());
 
 app.get("/*", (req, res, next) => {
-  console.log("Request path:", req.path);
+  console.log("Request url:", req.url);
   // strip leading slash
-  let path = req.path.substring(1);
-  if (cachedCerts[path]) {
+  let amdUrl = req.url.substring(1);
+  if (cachedCerts[amdUrl]) {
     console.log("Serving from cache");
-    res.send(cachedCerts[path]);
+    res.send(cachedCerts[amdUrl]);
   } else {
     next();
   }
