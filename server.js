@@ -30,7 +30,7 @@ app.get("/*", (req, res, next) => {
   let amdUrl = req.url.substring(1);
   if (cachedCerts[amdUrl]) {
     console.log("Serving from cache");
-    res.send(cachedCerts[amdUrl]);
+    res.send(Buffer.from(cachedCerts[amdUrl], "base64"));
   } else {
     next();
   }
