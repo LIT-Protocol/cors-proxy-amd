@@ -21,11 +21,15 @@ let app = express();
 app.get("/*", cacheMiddleware());
 app.options("/*", cacheMiddleware());
 
-app.get("/*", (req, res) => {
+app.get("/*", (req, res, next) => {
   console.log("Request path:", req.path);
-  if (cachedCerts[req.path]) {
+  // strip leading slash
+  let path = req.path.substring(1);
+  if (cachedCerts[path]) {
     console.log("Serving from cache");
-    res.send(cachedCerts[req.path]);
+    res.send(cachedCerts[path]);
+  } else {
+    next();
   }
 });
 
