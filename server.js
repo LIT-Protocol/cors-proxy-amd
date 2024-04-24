@@ -3,6 +3,7 @@ const corsAnywhere = require("cors-anywhere");
 const express = require("express");
 const apicache = require("apicache");
 const expressHttpProxy = require("express-http-proxy");
+const { cachedCerts } = require("./cachedCerts");
 
 const CORS_PROXY_PORT = 5001;
 // Create CORS Anywhere server
@@ -19,6 +20,14 @@ let app = express();
 
 app.get("/*", cacheMiddleware());
 app.options("/*", cacheMiddleware());
+
+app.get("/*", (req, res) => {
+  console.log("Request path:", req.path);
+  if (cachedCerts[req.path]) {
+    console.log("Serving from cache");
+    res.send(cachedCerts[req.path]);
+  }
+});
 
 // Proxy to CORS server
 app.use(expressHttpProxy(`localhost:${CORS_PROXY_PORT}`));
