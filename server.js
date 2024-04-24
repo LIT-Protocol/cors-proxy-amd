@@ -4,6 +4,7 @@ const express = require("express");
 const apicache = require("apicache");
 const expressHttpProxy = require("express-http-proxy");
 const { cachedCerts } = require("./cachedCerts");
+var cors = require("cors");
 
 const CORS_PROXY_PORT = 5001;
 // Create CORS Anywhere server
@@ -17,6 +18,8 @@ corsAnywhere
 
 // Create express Cache server
 let app = express();
+
+app.use(cors());
 
 app.get("/*", cacheMiddleware());
 app.options("/*", cacheMiddleware());
