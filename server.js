@@ -25,11 +25,11 @@ app.get("/*", cacheMiddleware());
 app.options("/*", cacheMiddleware());
 
 app.get("/*", (req, res, next) => {
-  console.log("Request url:", req.url);
+  // console.log("Request url:", req.url);
   // strip leading slash
   let amdUrl = req.url.substring(1);
   if (cachedCerts[amdUrl]) {
-    console.log("Serving from cache");
+    // console.log("Serving from cache");
     res.send(Buffer.from(cachedCerts[amdUrl], "base64"));
   } else {
     next();
