@@ -50,7 +50,7 @@ app.listen(APP_PORT, () => {
 function cacheMiddleware() {
   const cacheOptions = {
     statusCodes: { include: [200] },
-    defaultDuration: 60000 * 60 * 24 * 365 * 300, // 300 years
+    defaultDuration: 60000 * 60 * 24 * 365 * 10, // 10 years
     appendKey: (req, res) => req.method,
   };
   let cacheMiddleware = apicache.options(cacheOptions).middleware();
