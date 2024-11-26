@@ -8,7 +8,9 @@ const cors = require("cors");
 const redis = require("redis");
 
 const go = async () => {
-  const redisClient = redis.createClient();
+  const redisClient = redis.createClient({
+    url: process.env.REDISCLOUD_URL || "redis://localhost:6379",
+  });
   await redisClient.connect();
 
   const CORS_PROXY_PORT = 5001;
