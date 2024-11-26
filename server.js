@@ -7,66 +7,72 @@ const { cachedCerts } = require("./cachedCerts");
 const cors = require("cors");
 const redis = require("redis");
 
-const CORS_PROXY_PORT = 5001;
-// Create CORS Anywhere server
-corsAnywhere
-  .createServer({})
-  .listen(CORS_PROXY_PORT, () =>
-    console.log(
-      `Internal CORS Anywhere server started at port ${CORS_PROXY_PORT}`
-    )
-  );
+const go = async () => {
+  const redisClient = redis.createClient();
+  await redisClient.connect();
 
-// Create express Cache server
-let app = express();
+  const CORS_PROXY_PORT = 5001;
+  // Create CORS Anywhere server
+  corsAnywhere
+    .createServer({})
+    .listen(CORS_PROXY_PORT, () =>
+      console.log(
+        `Internal CORS Anywhere server started at port ${CORS_PROXY_PORT}`
+      )
+    );
 
-app.use(cors());
+  // Create express Cache server
+  let app = express();
 
-app.get("/*", cacheMiddleware());
-app.options("/*", cacheMiddleware());
+  app.use(cors());
 
-app.get("/*", (req, res, next) => {
-  // for debugging
-  console.log("Request url:", req.url);
-  console.log("Cache index:", apicache.getIndex());
-  console.log("Cache performance:", apicache.getPerformance());
+  app.get("/*", cacheMiddleware());
+  app.options("/*", cacheMiddleware());
 
-  // strip leading slash
-  let amdUrl = req.url.substring(1);
-  if (!amdUrl.startsWith("https://kdsintf.amd.com")) {
-    res.send("Invalid certificate URL");
-    return;
+  app.get("/*", (req, res, next) => {
+    // for debugging
+    // console.log("Request url:", req.url);
+    // console.log("Cache index:", apicache.getIndex());
+
+    // strip leading slash
+    let amdUrl = req.url.substring(1);
+    if (!amdUrl.startsWith("https://kdsintf.amd.com")) {
+      res.send("Invalid certificate URL");
+      return;
+    }
+    next();
+
+    // to manually cache hardcoded certs, uncomment the following:
+    // if (cachedCerts[amdUrl]) {
+    //   console.log("Serving from hardcoded cache");
+    //   res.send(Buffer.from(cachedCerts[amdUrl], "base64"));
+    // } else {
+    //   next();
+    // }
+  });
+
+  // Proxy to CORS server
+  app.use(expressHttpProxy(`localhost:${CORS_PROXY_PORT}`));
+
+  const APP_PORT = process.env.PORT || 8080;
+  app.listen(APP_PORT, () => {
+    console.log(`External CORS cache server started at port ${APP_PORT}`);
+  });
+
+  /**
+   * Construct the caching middleware
+   */
+  function cacheMiddleware() {
+    const cacheOptions = {
+      statusCodes: { include: [200] },
+      defaultDuration: 2147483647, // max signed int, but we also disabled expiration in the Lit fork of apicache
+      appendKey: (req, res) => req.method,
+      redisClient: redisClient,
+      debug: false,
+    };
+    let cacheMiddleware = apicache.options(cacheOptions).middleware();
+    return cacheMiddleware;
   }
-  next();
+};
 
-  // to manually cache hardcoded certs, uncomment the following:
-  // if (cachedCerts[amdUrl]) {
-  //   console.log("Serving from hardcoded cache");
-  //   res.send(Buffer.from(cachedCerts[amdUrl], "base64"));
-  // } else {
-  //   next();
-  // }
-});
-
-// Proxy to CORS server
-app.use(expressHttpProxy(`localhost:${CORS_PROXY_PORT}`));
-
-const APP_PORT = process.env.PORT || 8080;
-app.listen(APP_PORT, () => {
-  console.log(`External CORS cache server started at port ${APP_PORT}`);
-});
-
-/**
- * Construct the caching middleware
- */
-function cacheMiddleware() {
-  const cacheOptions = {
-    statusCodes: { include: [200] },
-    defaultDuration: 2147483647, // max signed int, but we also disabled expiration in the Lit fork of apicache
-    appendKey: (req, res) => req.method,
-    redisClient: redis.createClient(),
-    debug: true,
-  };
-  let cacheMiddleware = apicache.options(cacheOptions).middleware();
-  return cacheMiddleware;
-}
+go();
